@@ -66,6 +66,10 @@ Puppet::Type.newtype(:conjurized_file) do
     desc "Pre-conjurization file content (Conjur template)"
   end
 
+  newparam(:variable_map) do
+    desc "Map variables used in the template to Conjur variables."
+  end
+
   # Inherit File parameters
   newparam(:selinux_ignore_defaults) do
   end
@@ -99,6 +103,22 @@ Puppet::Type.newtype(:conjurized_file) do
     # DO CONJURIZE MAGIC HERE
     # Should return a version of the content parameter that has been run over
     # by Conjur to replace any in-template keys with the actual secrets.
+    Conjur::Config.load
+    Conjur::Config.apply
+
+    conjur = Conjur::Authn.connect nil, noask: true
+
+    # This parameter contains a hash of variable names to conjur references. E.g.
+    #
+    #     { "planet" => "!var puppetdemo/planet" }
+    #
+    @parameters[:variable_map].value
+
+    # This parameter contains template content. E.g.
+    #
+    #    This is a file. The secret value is $planet.
+    #    This is the second line of the file.
+    #
     @parameters[:content].value
   end
 
