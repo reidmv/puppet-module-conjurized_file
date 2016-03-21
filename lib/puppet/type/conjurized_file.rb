@@ -91,9 +91,15 @@ Puppet::Type.newtype(:conjurized_file) do
     [self[:path]]
   end
 
-  def should_content
-    # The conjurized_content() method should be defined in a provider.
-    @generated_content ||= conjurized_content
+  def conjurized_content
+    unless Puppet.features.conjur?
+      raise Puppet::Error "Puppet must have conjur feature working to use #{self.class.name.to_s} type"
+    end
+
+    # DO CONJURIZE MAGIC HERE
+    # Should return a version of the content parameter that has been run over
+    # by Conjur to replace any in-template keys with the actual secrets.
+    @parameters[:content].value
   end
 
   def generate
@@ -123,7 +129,7 @@ Puppet::Type.newtype(:conjurized_file) do
   end
 
   def eval_generate
-    content = should_content
+    content = conjurized_content
 
     if !content.nil? and !content.empty?
       catalog.resource("File[#{self[:path]}]")[:content] = content
