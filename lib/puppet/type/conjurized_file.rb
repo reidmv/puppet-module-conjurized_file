@@ -92,6 +92,13 @@ Puppet::Type.newtype(:conjurized_file) do
   end
 
   def conjurized_content
+    # The conjur libraries depend on either a $HOME environment variable being
+    # set, or having this override. In order to prevent the libraries from
+    # exploding, set this var before attempting to do anything with conjur. For
+    # good form we'll reset it to the original value when we're done.
+    original_conjurrc = ENV['CONJURRC']
+    ENV['CONJURRC'] = '/dev/null'
+
     unless Puppet.features.conjur?
       raise Puppet::Error "Puppet must have conjur feature working to use #{self.class.name.to_s} type"
     end
@@ -111,6 +118,11 @@ Puppet::Type.newtype(:conjurized_file) do
 
     template = @parameters[:content].value
     rendered = ERB.new(template).result(binding)
+
+    # Reset the environment variable we had to hack earlier.
+    ENV['CONJURRC'] = original_conjurrc
+
+    rendered
   end
 
   def generate
